@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election Voter Dashboard</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#1e40af',
+                        'secondary-green': '#059669',
+                        'accent-yellow': '#f59e0b',
+                        'light-bg': '#f3f4f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Smooth Card + Bar Animation -->
+    <style>
+        .card {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .bar-animate {
+            width: 0;
+            transition: width 1.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="bg-light-bg font-sans min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto">
+
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
+                नंदुरबार नगर पालिका इलेक्शन
+            </h1>
+            <p class="text-lg text-gray-600">Real-time overview of the current voting distribution.</p>
+        </header>
+
+        <!-- Total Votes Card -->
+        <div class="card visible bg-primary-blue text-white rounded-xl p-6 mb-8 text-center">
+            <h2 class="text-xl font-semibold opacity-80">Total Registered Voters (Overview)</h2>
+            <p id="total-voters" class="text-5xl sm:text-6xl font-black tracking-tight">75,080</p>
+        </div>
+
+        <!-- Regional Cards Inject Here -->
+        <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"></div>
+
+        <!-- Distribution Bar -->
+        <div class="card bg-white rounded-xl p-6">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Overall Vote Distribution</h3>
+            <div id="distribution-bar" class="flex h-6 rounded-lg overflow-hidden"></div>
+            <div id="distribution-labels" class="flex justify-between text-sm mt-2 text-gray-700 font-medium"></div>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        const TOTAL_VOTES = 75080;
+
+        const regionalData = [
+            { name: 'छत्री', votes: 24565, color: 'bg-indigo-600', candidate: 'फारूक खान हाजी जहिर खान कुरैशी', party: 'छत्री' },
+            { name: 'भाजप', votes: 22403, color: 'bg-green-600', candidate: 'अविनाश महादू माळी', party: 'भाजप' },
+            { name: 'शिवसेना', votes: 21080, color: 'bg-yellow-600', candidate: 'रत्नाबाई चंद्रकांत रघुवंशी', party: 'शिवसेना' },
+            { name: 'मशाल', votes: 7032, color: 'bg-red-600', candidate: 'संगीता खंडू माळी', party: 'मशाल' },
+        ];
+
+        const formatNumber = num => num.toLocaleString('en-US');
+
+        const renderDashboard = () => {
+            const grid = document.getElementById('dashboard-grid');
+            const bar = document.getElementById('distribution-bar');
+            const labels = document.getElementById('distribution-labels');
+
+            grid.innerHTML = '';
+            bar.innerHTML = '';
+            labels.innerHTML = '';
+
+            regionalData.forEach(region => {
+                const percentage = ((region.votes / TOTAL_VOTES) * 100).toFixed(2);
+
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="card bg-white rounded-xl p-6 border-t-4 ${region.color.replace('bg-', 'border-')}">
+                        <h3 class="text-xl font-bold text-gray-900 mb-1">${region.name}</h3>
+                        <p class="text-primary-blue font-semibold">${region.candidate}</p>
+                        <p class="text-sm text-gray-500 mb-4">Party: ${region.party}</p>
+
+                        <p class="text-4xl font-black">${formatNumber(region.votes)}</p>
+                        <p class="text-gray-500">Votes Cast</p>
+
+                        <p class="mt-4 text-2xl font-semibold ${region.color.replace('bg-', 'text-')}">${percentage}%</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                            <div class="bar-animate ${region.color} h-2.5 rounded-full" data-width="${percentage}"></div>
+                        </div>
+                    </div>
+                `);
+
+                bar.insertAdjacentHTML('beforeend', `
+                    <div class="bar-animate ${region.color} h-full" data-width="${percentage}"></div>
+                `);
+
+                labels.insertAdjacentHTML('beforeend', `
+                    <div class="text-center">
+                        <span class="font-bold ${region.color.replace('bg-', 'text-')}">${percentage}%</span>
+                        <div class="text-xs text-gray-600">${region.name}</div>
+                    </div>
+                `);
+            });
+
+            document.getElementById('total-voters').textContent = formatNumber(TOTAL_VOTES);
+
+            smoothReveal();
+            animateBars();
+        };
+
+        function animateBars() {
+            setTimeout(() => {
+                document.querySelectorAll('.bar-animate').forEach(el => {
+                    el.style.width = el.dataset.width + '%';
+                });
+            }, 350);
+        }
+
+        function smoothReveal() {
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('visible');
+                });
+            }, { threshold: 0.15 });
+
+            document.querySelectorAll('.card').forEach(card => observer.observe(card));
+        }
+
+        window.onload = renderDashboard;
+    </script>
+
+</body>
+</html>
